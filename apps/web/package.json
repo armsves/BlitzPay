@@ -1,0 +1,27 @@
+{
+  "name": "@blitzpay/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "db:push": "drizzle-kit push --config ../../packages/db/drizzle.config.ts"
+  },
+  "dependencies": {
+    "@blitzpay/blockchain": "workspace:*",
+    "@blitzpay/db": "workspace:*",
+    "@blitzpay/shared": "workspace:*",
+    "drizzle-orm": "^0.38.3",
+    "nanoid": "^5.0.9",
+    "next": "^15.1.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "viem": "^2.21.54"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "typescript": "^5.7.2"
+  }
+}

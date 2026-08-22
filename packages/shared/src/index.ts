@@ -113,6 +113,26 @@ export interface Settlement {
   status: SettlementStatus;
   portalPayoutId?: string;
   txHash?: string;
+  completesAt?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
+export interface MerchantBalanceInfo {
+  merchantId: string;
+  balanceUsdc: string;
+  updatedAt: string;
+}
+
+export interface BalanceLedgerEntry {
+  id: string;
+  merchantId: string;
+  type: "credit" | "debit";
+  amountUsdc: string;
+  balanceAfter: string;
+  referenceType: string;
+  referenceId: string;
+  description: string;
   createdAt: string;
 }
 

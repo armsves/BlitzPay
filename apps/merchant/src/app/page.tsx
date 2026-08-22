@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button, Card, Input, Badge, colors } from "@blitzpay/ui";
-import type { Merchant, BankDetails, Settlement } from "@blitzpay/shared";
+import type { Merchant, BankDetails, Settlement, MerchantBalanceInfo, BalanceLedgerEntry } from "@blitzpay/shared";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -13,6 +13,9 @@ export default function MerchantPortal() {
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [banks, setBanks] = useState<BankDetails[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
+  const [balance, setBalance] = useState<MerchantBalanceInfo | null>(null);
+  const [ledger, setLedger] = useState<BalanceLedgerEntry[]>([]);
+  const [withdrawing, setWithdrawing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -40,12 +43,36 @@ export default function MerchantPortal() {
     }
   }, []);
 
+  const refreshFinancials = useCallback(async () => {
+    if (!merchant) return;
+    const [balRes, ledgerRes, settleRes] = await Promise.all([
+      fetch(`${API}/api/merchants/${merchant.id}/balance`),
+      fetch(`${API}/api/merchants/${merchant.id}/ledger`),
+      fetch(`${API}/api/merchants/${merchant.id}/settlements`),
+    ]);
+    const bal = await balRes.json();
+    const led = await ledgerRes.json();
+    const set = await settleRes.json();
+    if (bal.success) setBalance(bal.data);
+    if (led.success) setLedger(led.data || []);
+    if (set.success) {
+      setSettlements(set.data || []);
+      setWithdrawing((set.data || []).some((s: Settlement) => s.status === "processing"));
+    }
+  }, [merchant]);
+
   useEffect(() => {
     if (merchant && (view === "bank" || view === "settle" || view === "dashboard")) {
       fetch(`${API}/api/merchants/${merchant.id}/bank`).then(r => r.json()).then(d => setBanks(d.data || []));
-      fetch(`${API}/api/merchants/${merchant.id}/settlements`).then(r => r.json()).then(d => setSettlements(d.data || []));
+      refreshFinancials();
     }
-  }, [merchant, view]);
+  }, [merchant, view, refreshFinancials]);
+
+  useEffect(() => {
+    if (!withdrawing || !merchant) return;
+    const interval = setInterval(refreshFinancials, 2000);
+    return () => clearInterval(interval);
+  }, [withdrawing, merchant, refreshFinancials]);
 
   async function handleRegister() {
     setLoading(true);
@@ -132,7 +159,11 @@ export default function MerchantPortal() {
     const data = await res.json();
     setLoading(false);
     setMessage(data.data?.message || data.error);
-    if (data.success) setSettleAmount("");
+    if (data.success) {
+      setSettleAmount("");
+      setWithdrawing(true);
+      await refreshFinancials();
+    }
   }
 
   function logout() {
@@ -201,6 +232,16 @@ export default function MerchantPortal() {
 
       {view === "dashboard" && merchant && (
         <>
+          <Card style={{ marginBottom: 20, textAlign: "center" }}>
+            <p style={{ color: colors.textMuted, fontSize: 13 }}>Available Balance</p>
+            <p style={{ fontSize: 36, fontWeight: 700, color: colors.primary }}>
+              ${balance?.balanceUsdc ?? "0.00"} USDC
+            </p>
+            <p style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
+              Credited instantly when customers pay via QR
+            </p>
+          </Card>
+
           <Card style={{ marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
@@ -304,24 +345,58 @@ export default function MerchantPortal() {
       {view === "settle" && merchant && (
         <Card>
           <Button variant="ghost" size="sm" onClick={() => setView("dashboard")} style={{ marginBottom: 16 }}>← Back</Button>
-          <h2 style={{ marginBottom: 16 }}>Settle to Bank</h2>
-          <p style={{ color: colors.textMuted, fontSize: 14, marginBottom: 20 }}>
-            Convert USDC to fiat and send to your bank via Portal payout rails.
+          <h2 style={{ marginBottom: 16 }}>Withdraw to Bank</h2>
+          <p style={{ color: colors.textMuted, fontSize: 14, marginBottom: 12 }}>
+            Portal payout is <strong>mocked</strong> — real access requires Portal onboarding. Simulates ~12s bank transfer delay.
           </p>
+          <div style={{ background: colors.bg, borderRadius: 8, padding: 16, marginBottom: 20, textAlign: "center" }}>
+            <p style={{ fontSize: 13, color: colors.textMuted }}>Available</p>
+            <p style={{ fontSize: 28, fontWeight: 700, color: colors.primary }}>${balance?.balanceUsdc ?? "0.00"}</p>
+          </div>
+          {withdrawing && (
+            <div style={{ background: "#FFB30020", border: "1px solid #FFB300", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13 }}>
+              Portal processing withdrawal… polling for completion
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
             <Input label="Amount (USDC)" value={settleAmount} onChange={setSettleAmount} placeholder="100.00" />
-            <Button onClick={handleSettle} disabled={loading || !settleAmount}>Initiate Settlement</Button>
+            <Button onClick={handleSettle} disabled={loading || !settleAmount || withdrawing}>
+              {loading ? "Submitting…" : withdrawing ? "Processing…" : "Withdraw to Bank"}
+            </Button>
           </div>
           {settlements.length > 0 && (
             <>
-              <h3 style={{ marginBottom: 12 }}>Settlement History</h3>
+              <h3 style={{ marginBottom: 12 }}>Withdrawal History</h3>
               {settlements.map(s => (
-                <div key={s.id} style={{ background: colors.bg, borderRadius: 8, padding: 16, marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+                <div key={s.id} style={{ background: colors.bg, borderRadius: 8, padding: 16, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontWeight: 600 }}>{s.amountUsdc} USDC → {s.fiatAmount} {s.fiatCurrency}</div>
                     <div style={{ fontSize: 12, color: colors.textMuted }}>{new Date(s.createdAt).toLocaleString()}</div>
+                    {s.status === "processing" && s.completesAt && (
+                      <div style={{ fontSize: 11, color: colors.warning, marginTop: 4 }}>
+                        Portal ETA: {new Date(s.completesAt).toLocaleTimeString()}
+                      </div>
+                    )}
                   </div>
-                  <Badge variant={s.status === "completed" ? "success" : "warning"}>{s.status}</Badge>
+                  <Badge variant={s.status === "completed" ? "success" : s.status === "failed" ? "error" : "warning"}>
+                    {s.status}
+                  </Badge>
+                </div>
+              ))}
+            </>
+          )}
+          {ledger.length > 0 && (
+            <>
+              <h3 style={{ marginBottom: 12, marginTop: 24 }}>Balance Ledger</h3>
+              {ledger.slice(0, 10).map(e => (
+                <div key={e.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${colors.border}`, fontSize: 13 }}>
+                  <div>
+                    <span style={{ color: e.type === "credit" ? colors.success : colors.error, fontWeight: 600 }}>
+                      {e.type === "credit" ? "+" : "-"}{e.amountUsdc}
+                    </span>
+                    <span style={{ color: colors.textMuted, marginLeft: 8 }}>{e.description}</span>
+                  </div>
+                  <span style={{ color: colors.textMuted }}>{parseFloat(e.balanceAfter).toFixed(2)}</span>
                 </div>
               ))}
             </>

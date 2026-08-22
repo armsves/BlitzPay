@@ -7,10 +7,11 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
-    "dev:api": "pnpm --filter @blitzpay/api dev",
+    "dev:web": "pnpm --filter @blitzpay/web dev",
     "dev:merchant": "pnpm --filter @blitzpay/merchant dev",
     "dev:pos": "pnpm --filter @blitzpay/pos dev",
-    "dev:customer": "pnpm --filter @blitzpay/customer dev"
+    "dev:customer": "pnpm --filter @blitzpay/customer dev",
+    "db:push": "pnpm --filter @blitzpay/web db:push"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
