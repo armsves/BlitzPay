@@ -18,6 +18,91 @@ input:focus, select:focus, textarea:focus {
 a { color: #6C47FF; text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* POS split layout */
+.pos-split {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .pos-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pos-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.pos-catalog-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 10px;
+  background: #14141F;
+  border: 1px solid #2A2A3C;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  font-family: inherit;
+  color: inherit;
+  text-align: center;
+}
+
+.pos-catalog-item:hover {
+  border-color: #6C47FF;
+  background: #1E1E2E;
+  transform: translateY(-1px);
+}
+
+.pos-catalog-item:active {
+  transform: translateY(0);
+}
+
+.pos-catalog-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.pos-catalog-img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2A2A3C;
+  font-size: 24px;
+  font-weight: 700;
+  color: #6C47FF;
+}
+
+.pos-catalog-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.pos-catalog-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #6C47FF;
+}
+
+.pos-cart-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #2A2A3C;
+}
+
+
 /* Institutional landing banner */
 .inst-banner {
   background: linear-gradient(180deg, #0B1220 0%, #070B12 100%);
