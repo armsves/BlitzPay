@@ -1,83 +1,87 @@
-import Database from "better-sqlite3";
-import path from "node:path";
 import fs from "node:fs";
+import path from "node:path";
+import { nanoid } from "nanoid";
 
 const dataDir = path.join(process.cwd(), "data");
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+const dbPath = path.join(dataDir, "blitzpay.json");
 
-const db = new Database(path.join(dataDir, "blitzpay.db"));
+interface DbSchema {
+  merchants: Record<string, Record<string, unknown>>;
+  bank_details: Record<string, Record<string, unknown>>;
+  products: Record<string, Record<string, unknown>>;
+  invoices: Record<string, Record<string, unknown>>;
+  settlements: Record<string, Record<string, unknown>>;
+}
 
-db.pragma("journal_mode = WAL");
+function load(): DbSchema {
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+  if (!fs.existsSync(dbPath)) {
+    const empty: DbSchema = {
+      merchants: {},
+      bank_details: {},
+      products: {},
+      invoices: {},
+      settlements: {},
+    };
+    fs.writeFileSync(dbPath, JSON.stringify(empty, null, 2));
+    return empty;
+  }
+  return JSON.parse(fs.readFileSync(dbPath, "utf-8"));
+}
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS merchants (
-    id TEXT PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    business_name TEXT NOT NULL,
-    business_type TEXT NOT NULL,
-    tax_id TEXT NOT NULL,
-    wallet_address TEXT NOT NULL,
-    kyb_status TEXT DEFAULT 'pending',
-    portal_customer_id TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
+function save(data: DbSchema) {
+  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+}
 
-  CREATE TABLE IF NOT EXISTS bank_details (
-    id TEXT PRIMARY KEY,
-    merchant_id TEXT NOT NULL REFERENCES merchants(id),
-    account_holder_name TEXT NOT NULL,
-    bank_name TEXT NOT NULL,
-    account_number TEXT NOT NULL,
-    routing_number TEXT NOT NULL,
-    iban TEXT,
-    swift TEXT,
-    country TEXT NOT NULL,
-    currency TEXT DEFAULT 'USD',
-    portal_payment_method_id TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
+type Table = keyof DbSchema;
 
-  CREATE TABLE IF NOT EXISTS products (
-    id TEXT PRIMARY KEY,
-    merchant_id TEXT NOT NULL REFERENCES merchants(id),
-    name TEXT NOT NULL,
-    description TEXT DEFAULT '',
-    price_usdc TEXT NOT NULL,
-    quantity INTEGER DEFAULT 0,
-    image_url TEXT,
-    sku TEXT,
-    active INTEGER DEFAULT 1,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
+const db = {
+  insert(table: Table, row: Record<string, unknown>) {
+    const data = load();
+    const id = (row.id as string) || nanoid();
+    data[table][id] = { ...row, id };
+    save(data);
+    return id;
+  },
 
-  CREATE TABLE IF NOT EXISTS invoices (
-    id TEXT PRIMARY KEY,
-    merchant_id TEXT NOT NULL REFERENCES merchants(id),
-    invoice_number TEXT NOT NULL,
-    items_json TEXT NOT NULL,
-    subtotal_usdc TEXT NOT NULL,
-    total_usdc TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    merchant_wallet_address TEXT NOT NULL,
-    payment_qr_data TEXT NOT NULL,
-    tx_hash TEXT,
-    paid_at TEXT,
-    expires_at TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
+  get(table: Table, id: string): Record<string, unknown> | undefined {
+    return load()[table][id];
+  },
 
-  CREATE TABLE IF NOT EXISTS settlements (
-    id TEXT PRIMARY KEY,
-    merchant_id TEXT NOT NULL REFERENCES merchants(id),
-    amount_usdc TEXT NOT NULL,
-    fiat_amount TEXT,
-    fiat_currency TEXT DEFAULT 'USD',
-    status TEXT DEFAULT 'pending',
-    portal_payout_id TEXT,
-    tx_hash TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-`);
+  getAll(table: Table): Record<string, unknown>[] {
+    return Object.values(load()[table]);
+  },
+
+  find(table: Table, predicate: (row: Record<string, unknown>) => boolean): Record<string, unknown> | undefined {
+    return Object.values(load()[table]).find(predicate);
+  },
+
+  filter(table: Table, predicate: (row: Record<string, unknown>) => boolean): Record<string, unknown>[] {
+    return Object.values(load()[table]).filter(predicate);
+  },
+
+  update(table: Table, id: string, updates: Record<string, unknown>) {
+    const data = load();
+    if (!data[table][id]) return;
+    data[table][id] = { ...data[table][id], ...updates };
+    save(data);
+  },
+
+  delete(table: Table, id: string) {
+    const data = load();
+    delete data[table][id];
+    save(data);
+  },
+
+  updateWhere(table: Table, predicate: (row: Record<string, unknown>) => boolean, updates: Record<string, unknown>) {
+    const data = load();
+    for (const [id, row] of Object.entries(data[table])) {
+      if (predicate(row)) {
+        data[table][id] = { ...row, ...updates };
+      }
+    }
+    save(data);
+  },
+};
 
 export default db;

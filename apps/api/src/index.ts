@@ -47,34 +47,35 @@ app.post("/api/merchants/register", async (c) => {
     return c.json({ success: false, error: "Missing required fields" }, 400);
   }
 
-  const id = nanoid();
-  try {
-    db.prepare(`
-      INSERT INTO merchants (id, email, password_hash, business_name, business_type, tax_id, wallet_address)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, email, hashPassword(password), businessName, businessType || "retail", taxId || "", walletAddress);
+  const existing = db.find("merchants", (r) => r.email === email);
+  if (existing) return c.json({ success: false, error: "Email already registered" }, 409);
 
-    return c.json({ success: true, data: { id, email, businessName } });
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Registration failed";
-    if (msg.includes("UNIQUE")) return c.json({ success: false, error: "Email already registered" }, 409);
-    return c.json({ success: false, error: msg }, 500);
-  }
+  const id = nanoid();
+  db.insert("merchants", {
+    id,
+    email,
+    password_hash: hashPassword(password),
+    business_name: businessName,
+    business_type: businessType || "retail",
+    tax_id: taxId || "",
+    wallet_address: walletAddress,
+    kyb_status: "pending",
+    created_at: new Date().toISOString(),
+  });
+
+  return c.json({ success: true, data: { id, email, businessName } });
 });
 
 app.post("/api/merchants/login", async (c) => {
   const { email, password } = await c.req.json();
-  const row = db.prepare("SELECT * FROM merchants WHERE email = ? AND password_hash = ?").get(
-    email,
-    hashPassword(password)
-  ) as Record<string, unknown> | undefined;
+  const row = db.find("merchants", (r) => r.email === email && r.password_hash === hashPassword(password));
 
   if (!row) return c.json({ success: false, error: "Invalid credentials" }, 401);
   return c.json({ success: true, data: rowToMerchant(row) });
 });
 
 app.get("/api/merchants/:id", (c) => {
-  const row = db.prepare("SELECT * FROM merchants WHERE id = ?").get(c.req.param("id")) as Record<string, unknown> | undefined;
+  const row = db.get("merchants", c.req.param("id"));
   if (!row) return c.json({ success: false, error: "Not found" }, 404);
   return c.json({ success: true, data: rowToMerchant(row) });
 });
@@ -84,15 +85,12 @@ app.get("/api/merchants/:id", (c) => {
 app.post("/api/merchants/:id/kyb", async (c) => {
   const merchantId = c.req.param("id");
   const body = await c.req.json();
-
   const portalCustomerId = `portal_cust_${nanoid(12)}`;
 
-  db.prepare(`
-    UPDATE merchants SET kyb_status = 'submitted', portal_customer_id = ? WHERE id = ?
-  `).run(portalCustomerId, merchantId);
-
-  // In production: call Portal API to initiate KYB workflow
-  // POST https://api.portalhq.io/clients/me/customers with business details
+  db.update("merchants", merchantId, {
+    kyb_status: "submitted",
+    portal_customer_id: portalCustomerId,
+  });
 
   return c.json({
     success: true,
@@ -106,8 +104,7 @@ app.post("/api/merchants/:id/kyb", async (c) => {
 });
 
 app.post("/api/merchants/:id/kyb/approve", (c) => {
-  const merchantId = c.req.param("id");
-  db.prepare("UPDATE merchants SET kyb_status = 'approved' WHERE id = ?").run(merchantId);
+  db.update("merchants", c.req.param("id"), { kyb_status: "approved" });
   return c.json({ success: true, data: { kybStatus: "approved" } });
 });
 
@@ -117,30 +114,31 @@ app.post("/api/merchants/:id/bank", async (c) => {
   const merchantId = c.req.param("id");
   const body = await c.req.json();
   const id = nanoid();
-
   const portalPaymentMethodId = `pm_${nanoid(12)}`;
 
-  db.prepare(`
-    INSERT INTO bank_details (id, merchant_id, account_holder_name, bank_name, account_number, routing_number, iban, swift, country, currency, portal_payment_method_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id, merchantId, body.accountHolderName, body.bankName, body.accountNumber,
-    body.routingNumber || "", body.iban || null, body.swift || null,
-    body.country || "US", body.currency || "USD", portalPaymentMethodId
-  );
+  db.insert("bank_details", {
+    id,
+    merchant_id: merchantId,
+    account_holder_name: body.accountHolderName,
+    bank_name: body.bankName,
+    account_number: body.accountNumber,
+    routing_number: body.routingNumber || "",
+    iban: body.iban || null,
+    swift: body.swift || null,
+    country: body.country || "US",
+    currency: body.currency || "USD",
+    portal_payment_method_id: portalPaymentMethodId,
+    created_at: new Date().toISOString(),
+  });
 
   return c.json({
     success: true,
-    data: {
-      id,
-      portalPaymentMethodId,
-      message: "Bank details saved. Linked to Portal payout rails.",
-    },
+    data: { id, portalPaymentMethodId, message: "Bank details saved. Linked to Portal payout rails." },
   });
 });
 
 app.get("/api/merchants/:id/bank", (c) => {
-  const rows = db.prepare("SELECT * FROM bank_details WHERE merchant_id = ?").all(c.req.param("id")) as Record<string, unknown>[];
+  const rows = db.filter("bank_details", (r) => r.merchant_id === c.req.param("id"));
   const banks: BankDetails[] = rows.map((r) => ({
     id: r.id as string,
     merchantId: r.merchant_id as string,
@@ -165,19 +163,24 @@ app.post("/api/merchants/:merchantId/products", async (c) => {
   const body = await c.req.json();
   const id = nanoid();
 
-  db.prepare(`
-    INSERT INTO products (id, merchant_id, name, description, price_usdc, quantity, image_url, sku)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, merchantId, body.name, body.description || "", body.priceUsdc, body.quantity ?? 0, body.imageUrl || null, body.sku || null);
+  db.insert("products", {
+    id,
+    merchant_id: merchantId,
+    name: body.name,
+    description: body.description || "",
+    price_usdc: body.priceUsdc,
+    quantity: body.quantity ?? 0,
+    image_url: body.imageUrl || null,
+    sku: body.sku || null,
+    active: 1,
+    created_at: new Date().toISOString(),
+  });
 
   return c.json({ success: true, data: { id, ...body } });
 });
 
 app.get("/api/merchants/:merchantId/products", (c) => {
-  const rows = db.prepare("SELECT * FROM products WHERE merchant_id = ? ORDER BY created_at DESC").all(
-    c.req.param("merchantId")
-  ) as Record<string, unknown>[];
-
+  const rows = db.filter("products", (r) => r.merchant_id === c.req.param("merchantId"));
   const products: Product[] = rows.map((r) => ({
     id: r.id as string,
     merchantId: r.merchant_id as string,
@@ -190,21 +193,24 @@ app.get("/api/merchants/:merchantId/products", (c) => {
     active: Boolean(r.active),
     createdAt: r.created_at as string,
   }));
-
   return c.json({ success: true, data: products });
 });
 
 app.put("/api/products/:id", async (c) => {
   const body = await c.req.json();
-  db.prepare(`
-    UPDATE products SET name = ?, description = ?, price_usdc = ?, quantity = ?, image_url = ?, active = ?
-    WHERE id = ?
-  `).run(body.name, body.description, body.priceUsdc, body.quantity, body.imageUrl || null, body.active ? 1 : 0, c.req.param("id"));
+  db.update("products", c.req.param("id"), {
+    name: body.name,
+    description: body.description,
+    price_usdc: body.priceUsdc,
+    quantity: body.quantity,
+    image_url: body.imageUrl || null,
+    active: body.active ? 1 : 0,
+  });
   return c.json({ success: true });
 });
 
 app.delete("/api/products/:id", (c) => {
-  db.prepare("DELETE FROM products WHERE id = ?").run(c.req.param("id"));
+  db.delete("products", c.req.param("id"));
   return c.json({ success: true });
 });
 
@@ -214,7 +220,7 @@ app.post("/api/merchants/:merchantId/invoices", async (c) => {
   const merchantId = c.req.param("merchantId");
   const body = await c.req.json();
 
-  const merchant = db.prepare("SELECT * FROM merchants WHERE id = ?").get(merchantId) as Record<string, unknown> | undefined;
+  const merchant = db.get("merchants", merchantId);
   if (!merchant) return c.json({ success: false, error: "Merchant not found" }, 404);
 
   const id = nanoid();
@@ -231,10 +237,19 @@ app.post("/api/merchants/:merchantId/invoices", async (c) => {
 
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
-  db.prepare(`
-    INSERT INTO invoices (id, merchant_id, invoice_number, items_json, subtotal_usdc, total_usdc, merchant_wallet_address, payment_qr_data, expires_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, merchantId, invoiceNumber, JSON.stringify(items), subtotal, total, merchant.wallet_address, paymentQrData, expiresAt);
+  db.insert("invoices", {
+    id,
+    merchant_id: merchantId,
+    invoice_number: invoiceNumber,
+    items_json: JSON.stringify(items),
+    subtotal_usdc: subtotal,
+    total_usdc: total,
+    status: "pending",
+    merchant_wallet_address: merchant.wallet_address,
+    payment_qr_data: paymentQrData,
+    expires_at: expiresAt,
+    created_at: new Date().toISOString(),
+  });
 
   const invoice: Invoice = {
     id,
@@ -254,7 +269,7 @@ app.post("/api/merchants/:merchantId/invoices", async (c) => {
 });
 
 app.get("/api/invoices/:id", (c) => {
-  const row = db.prepare("SELECT * FROM invoices WHERE id = ?").get(c.req.param("id")) as Record<string, unknown> | undefined;
+  const row = db.get("invoices", c.req.param("id"));
   if (!row) return c.json({ success: false, error: "Not found" }, 404);
 
   const invoice: Invoice = {
@@ -277,30 +292,26 @@ app.get("/api/invoices/:id", (c) => {
 });
 
 app.get("/api/merchants/:merchantId/invoices", (c) => {
-  const rows = db.prepare("SELECT * FROM invoices WHERE merchant_id = ? ORDER BY created_at DESC").all(
-    c.req.param("merchantId")
-  ) as Record<string, unknown>[];
-
+  const rows = db.filter("invoices", (r) => r.merchant_id === c.req.param("merchantId"));
   const invoices = rows.map((row) => ({
     id: row.id as string,
-    merchantId: row.merchant_id as string,
     invoiceNumber: row.invoice_number as string,
-    items: JSON.parse(row.items_json as string),
-    subtotalUsdc: row.subtotal_usdc as string,
     totalUsdc: row.total_usdc as string,
     status: row.status as string,
-    merchantWalletAddress: row.merchant_wallet_address as string,
-    paymentQrData: row.payment_qr_data as string,
     txHash: row.tx_hash as string | undefined,
     paidAt: row.paid_at as string | undefined,
-    expiresAt: row.expires_at as string,
     createdAt: row.created_at as string,
+    items: JSON.parse(row.items_json as string),
+    merchantId: row.merchant_id as string,
+    subtotalUsdc: row.subtotal_usdc as string,
+    merchantWalletAddress: row.merchant_wallet_address as string,
+    paymentQrData: row.payment_qr_data as string,
+    expiresAt: row.expires_at as string,
   }));
-
   return c.json({ success: true, data: invoices });
 });
 
-// ─── Payments (Instant Settlement) ──────────────────────────────────
+// ─── Payments (Instant Settlement) ────────────────────────────────
 
 app.post("/api/payments/confirm", async (c) => {
   const { invoiceId, txHash, blockNumber, status } = await c.req.json();
@@ -310,18 +321,19 @@ app.post("/api/payments/confirm", async (c) => {
   }
 
   const paidAt = new Date().toISOString();
-  db.prepare(`
-    UPDATE invoices SET status = 'paid', tx_hash = ?, paid_at = ? WHERE id = ?
-  `).run(txHash, paidAt, invoiceId);
+  db.update("invoices", invoiceId, { status: "paid", tx_hash: txHash, paid_at: paidAt });
 
-  const invoice = db.prepare("SELECT * FROM invoices WHERE id = ?").get(invoiceId) as Record<string, unknown>;
-
-  // Decrement product quantities
-  const items: InvoiceItem[] = JSON.parse(invoice.items_json as string);
-  for (const item of items) {
-    db.prepare("UPDATE products SET quantity = quantity - ? WHERE id = ? AND quantity >= ?").run(
-      item.quantity, item.productId, item.quantity
-    );
+  const invoice = db.get("invoices", invoiceId);
+  if (invoice) {
+    const items: InvoiceItem[] = JSON.parse(invoice.items_json as string);
+    for (const item of items) {
+      const product = db.get("products", item.productId);
+      if (product && (product.quantity as number) >= item.quantity) {
+        db.update("products", item.productId, {
+          quantity: (product.quantity as number) - item.quantity,
+        });
+      }
+    }
   }
 
   return c.json({
@@ -354,29 +366,29 @@ app.post("/api/merchants/:id/settle", async (c) => {
   const merchantId = c.req.param("id");
   const { amountUsdc } = await c.req.json();
 
-  const merchant = db.prepare("SELECT * FROM merchants WHERE id = ?").get(merchantId) as Record<string, unknown> | undefined;
+  const merchant = db.get("merchants", merchantId);
   if (!merchant) return c.json({ success: false, error: "Merchant not found" }, 404);
   if (merchant.kyb_status !== "approved") {
     return c.json({ success: false, error: "KYB must be approved before settlement" }, 403);
   }
 
-  const bank = db.prepare("SELECT * FROM bank_details WHERE merchant_id = ? LIMIT 1").get(merchantId) as Record<string, unknown> | undefined;
+  const bank = db.find("bank_details", (r) => r.merchant_id === merchantId);
   if (!bank) return c.json({ success: false, error: "Bank details required" }, 400);
 
   const id = nanoid();
   const portalPayoutId = `payout_${nanoid(12)}`;
-  const fiatAmount = (parseFloat(amountUsdc) * 0.999).toFixed(2); // mock 0.1% fee
+  const fiatAmount = (parseFloat(amountUsdc) * 0.999).toFixed(2);
 
-  db.prepare(`
-    INSERT INTO settlements (id, merchant_id, amount_usdc, fiat_amount, fiat_currency, status, portal_payout_id)
-    VALUES (?, ?, ?, ?, ?, 'processing', ?)
-  `).run(id, merchantId, amountUsdc, fiatAmount, bank.currency, portalPayoutId);
-
-  // In production:
-  // 1. GET /payouts/channels (Portal/Noah)
-  // 2. POST /payouts/quote with cryptoAmount
-  // 3. POST /payouts with payoutId
-  // 4. Send USDC to deposit address from merchant wallet
+  db.insert("settlements", {
+    id,
+    merchant_id: merchantId,
+    amount_usdc: amountUsdc,
+    fiat_amount: fiatAmount,
+    fiat_currency: bank.currency,
+    status: "processing",
+    portal_payout_id: portalPayoutId,
+    created_at: new Date().toISOString(),
+  });
 
   return c.json({
     success: true,
@@ -394,10 +406,7 @@ app.post("/api/merchants/:id/settle", async (c) => {
 });
 
 app.get("/api/merchants/:id/settlements", (c) => {
-  const rows = db.prepare("SELECT * FROM settlements WHERE merchant_id = ? ORDER BY created_at DESC").all(
-    c.req.param("id")
-  ) as Record<string, unknown>[];
-
+  const rows = db.filter("settlements", (r) => r.merchant_id === c.req.param("id"));
   const settlements: Settlement[] = rows.map((r) => ({
     id: r.id as string,
     merchantId: r.merchant_id as string,
@@ -409,7 +418,6 @@ app.get("/api/merchants/:id/settlements", (c) => {
     txHash: r.tx_hash as string | undefined,
     createdAt: r.created_at as string,
   }));
-
   return c.json({ success: true, data: settlements });
 });
 
