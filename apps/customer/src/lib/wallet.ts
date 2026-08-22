@@ -7,8 +7,7 @@ import {
 } from "@category-labs/mera";
 import { toViemAccount } from "@category-labs/mera/viem";
 import { createWalletClient, http, parseUnits, type Hex } from "viem";
-import { monadTestnet, USDC_TESTNET, erc20Abi } from "@blitzpay/blockchain";
-import { MONAD_TESTNET } from "@blitzpay/shared";
+import { monadTestnet, USDC_TESTNET, erc20Abi, getClientMonadRpcUrl } from "@blitzpay/blockchain";
 
 const CREDENTIAL_KEY = "blitzpay.credential";
 
@@ -63,7 +62,7 @@ export function getAddress(): string | null {
 }
 
 async function waitForReceiptSync(txHash: Hex): Promise<{ blockNumber: string; status: string }> {
-  const response = await fetch(MONAD_TESTNET.rpcUrl, {
+  const response = await fetch(getClientMonadRpcUrl(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -94,7 +93,7 @@ export async function sendUsdcDirect(
   const client = createWalletClient({
     account,
     chain: monadTestnet,
-    transport: http(MONAD_TESTNET.rpcUrl),
+    transport: http(getClientMonadRpcUrl()),
   });
 
   const amount = parseUnits(amountUsdc, USDC_TESTNET.decimals);

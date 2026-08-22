@@ -27,6 +27,15 @@
 | Install Command | `cd ../.. && pnpm install` |
 | Build Command | `cd ../.. && pnpm --filter @blitzpay/web build` |
 
+### Required env vars (Vercel dashboard)
+
+| Variable | Notes |
+|----------|--------|
+| `MONAD_RPC_URL` | Server-only dRPC endpoint — **never** prefix with `NEXT_PUBLIC_`. Browser traffic goes through `/api/rpc`. |
+| `CIRCLE_API_KEY` | Circle Sandbox API key |
+
+Supabase vars are injected by the `blitzpay-db` integration.
+
 ## Supabase
 
 ```bash

@@ -8,12 +8,13 @@ import {
   type TransactionReceipt,
 } from "viem";
 import { MONAD_TESTNET, USDC_TESTNET } from "@blitzpay/shared";
+import { getServerMonadRpcUrl } from "./rpc";
 
 export const monadTestnet = {
   id: MONAD_TESTNET.id,
   name: MONAD_TESTNET.name,
   nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
-  rpcUrls: { default: { http: [MONAD_TESTNET.rpcUrl] } },
+  rpcUrls: { default: { http: ["/api/rpc"] } },
 } as const;
 
 const erc20Abi = [
@@ -45,7 +46,7 @@ const erc20Abi = [
 export function createMonadClient() {
   return createPublicClient({
     chain: monadTestnet,
-    transport: http(MONAD_TESTNET.rpcUrl),
+    transport: http(getServerMonadRpcUrl()),
   });
 }
 
@@ -64,7 +65,7 @@ export async function sendUsdcSync(
   signedTx: Hex,
   timeoutMs = 5000
 ): Promise<TransactionReceipt> {
-  const response = await fetch(MONAD_TESTNET.rpcUrl, {
+  const response = await fetch(getServerMonadRpcUrl(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -122,5 +123,7 @@ export function parsePaymentQrPayload(data: string): {
     return null;
   }
 }
+
+export { getServerMonadRpcUrl, getClientMonadRpcUrl } from "./rpc";
 
 export { erc20Abi, USDC_TESTNET, MONAD_TESTNET };

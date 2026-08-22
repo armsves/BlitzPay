@@ -1,7 +1,6 @@
 export const MONAD_TESTNET = {
   id: 10143,
   name: "Monad Testnet",
-  rpcUrl: "https://testnet-rpc.monad.xyz",
   blockExplorer: "https://testnet.monadexplorer.com",
 } as const;
 
