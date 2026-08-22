@@ -1,8 +1,17 @@
 # BlitzPay
 
-Instant settlement payment platform on **Monad** — serverless API on Vercel with Postgres balance tracking.
+Instant settlement payment platform on **Monad** — serverless API on Vercel with Supabase Postgres.
 
 **Repository:** https://github.com/armsves/BlitzPay
+
+## Live apps
+
+| App | URL |
+|-----|-----|
+| **Merchant portal** | https://blitzpay-merchant.vercel.app |
+| **POS** | https://blitzpay-pos.vercel.app |
+| **Customer wallet** | https://blitzpay-customer.vercel.app |
+| **API** | https://blitzpay-eight.vercel.app |
 
 ## Architecture
 
@@ -11,26 +20,14 @@ Instant settlement payment platform on **Monad** — serverless API on Vercel wi
 - **`apps/pos`** — Products, invoices, QR codes
 - **`apps/customer`** — Mera passkeys, QR pay, Circle faucet
 
-## Deploy on Vercel
-
-1. Create a [Neon](https://neon.tech) Postgres database (free tier)
-2. Import repo on [Vercel](https://vercel.com) → set root directory to **`apps/web`**
-3. Add env var: `DATABASE_URL=postgresql://...`
-4. Deploy — then run schema push once:
-
-```bash
-DATABASE_URL=... pnpm db:push
-```
-
-5. Deploy frontends separately (merchant, pos, customer) with:
-   `NEXT_PUBLIC_API_URL=https://your-api.vercel.app`
+See [DEPLOY.md](./DEPLOY.md) for Vercel project setup and env vars.
 
 ## Local Dev
 
 ```bash
-cp .env.example .env   # add DATABASE_URL from Neon
+cp .env.example .env   # Supabase / API URLs
 pnpm install
-pnpm db:push           # create tables
+pnpm db:push           # create tables (needs DATABASE_URL)
 pnpm dev:web           # API on :3001
 pnpm dev:merchant      # :3002
 pnpm dev:pos           # :3003
