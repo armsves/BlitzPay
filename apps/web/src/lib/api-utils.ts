@@ -29,7 +29,7 @@ export function rowToMerchant(row: {
   taxId: string;
   walletAddress: string;
   kybStatus: string;
-  portalCustomerId: string | null;
+  circleAccountId: string | null;
   createdAt: Date;
 }): Merchant {
   return {
@@ -40,7 +40,7 @@ export function rowToMerchant(row: {
     taxId: row.taxId,
     walletAddress: row.walletAddress,
     kybStatus: row.kybStatus as Merchant["kybStatus"],
-    portalCustomerId: row.portalCustomerId ?? undefined,
+    circleAccountId: row.circleAccountId ?? undefined,
     createdAt: row.createdAt.toISOString(),
   };
 }

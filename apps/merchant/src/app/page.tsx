@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button, Card, Input, Badge, colors } from "@blitzpay/ui";
 import type { Merchant, BankDetails, Settlement, MerchantBalanceInfo, BalanceLedgerEntry } from "@blitzpay/shared";
+import { CIRCLE_SANDBOX_APP_URL } from "@blitzpay/shared";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -120,7 +121,7 @@ export default function MerchantPortal() {
     const data = await res.json();
     setLoading(false);
     setMessage(data.data?.message || "KYB submitted");
-    const updated = { ...merchant, kybStatus: "submitted" as const, portalCustomerId: data.data?.portalCustomerId };
+    const updated = { ...merchant, kybStatus: "submitted" as const, circleAccountId: data.data?.circleAccountId };
     setMerchant(updated);
     localStorage.setItem("blitzpay_merchant", JSON.stringify(updated));
   }
@@ -258,7 +259,7 @@ export default function MerchantPortal() {
               <div onClick={() => setView("kyb")}>
                 <div style={{ fontSize: 24, marginBottom: 8 }}>📋</div>
                 <div style={{ fontWeight: 600 }}>KYB Verification</div>
-                <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>Portal identity check</div>
+                <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>Circle Sandbox verification</div>
               </div>
             </Card>
             <Card style={{ cursor: "pointer", textAlign: "center" }}>
@@ -272,7 +273,7 @@ export default function MerchantPortal() {
               <div onClick={() => setView("settle")}>
                 <div style={{ fontSize: 24, marginBottom: 8 }}>💸</div>
                 <div style={{ fontWeight: 600 }}>Settle to Bank</div>
-                <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>Via Portal payouts</div>
+                <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>Circle withdraw to bank</div>
               </div>
             </Card>
           </div>
@@ -292,20 +293,20 @@ export default function MerchantPortal() {
           <Button variant="ghost" size="sm" onClick={() => setView("dashboard")} style={{ marginBottom: 16 }}>← Back</Button>
           <h2 style={{ marginBottom: 16 }}>KYB Verification</h2>
           <p style={{ color: colors.textMuted, fontSize: 14, marginBottom: 20 }}>
-            Complete Know Your Business verification through Portal to enable bank settlements.
+            Complete business verification via Circle Sandbox to enable bank withdrawals.
           </p>
           <div style={{ background: colors.bg, borderRadius: 8, padding: 16, marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span>Status</span>{kybBadge(merchant.kybStatus)}
             </div>
-            {merchant.portalCustomerId && (
+            {merchant.circleAccountId && (
               <div style={{ fontSize: 12, color: colors.textMuted, fontFamily: "monospace" }}>
-                Portal Customer: {merchant.portalCustomerId}
+                Circle Account: {merchant.circleAccountId}
               </div>
             )}
           </div>
           {merchant.kybStatus === "pending" && (
-            <Button onClick={handleKybSubmit} disabled={loading}>Submit KYB to Portal</Button>
+            <Button onClick={handleKybSubmit} disabled={loading}>Submit KYB to Circle Sandbox</Button>
           )}
           {merchant.kybStatus === "submitted" && (
             <Button onClick={handleKybApprove} disabled={loading}>Approve KYB (Demo)</Button>
@@ -347,7 +348,7 @@ export default function MerchantPortal() {
           <Button variant="ghost" size="sm" onClick={() => setView("dashboard")} style={{ marginBottom: 16 }}>← Back</Button>
           <h2 style={{ marginBottom: 16 }}>Withdraw to Bank</h2>
           <p style={{ color: colors.textMuted, fontSize: 14, marginBottom: 12 }}>
-            Portal payout is <strong>mocked</strong> — real access requires Portal onboarding. Simulates ~12s bank transfer delay.
+            Settles via <a href={CIRCLE_SANDBOX_APP_URL} target="_blank" rel="noopener noreferrer">Circle Sandbox</a> — withdraw USDC to your linked bank account (~12s wire simulation).
           </p>
           <div style={{ background: colors.bg, borderRadius: 8, padding: 16, marginBottom: 20, textAlign: "center" }}>
             <p style={{ fontSize: 13, color: colors.textMuted }}>Available</p>
@@ -355,7 +356,7 @@ export default function MerchantPortal() {
           </div>
           {withdrawing && (
             <div style={{ background: "#FFB30020", border: "1px solid #FFB300", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13 }}>
-              Portal processing withdrawal… polling for completion
+              Circle Sandbox processing wire withdrawal…
             </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
@@ -374,7 +375,7 @@ export default function MerchantPortal() {
                     <div style={{ fontSize: 12, color: colors.textMuted }}>{new Date(s.createdAt).toLocaleString()}</div>
                     {s.status === "processing" && s.completesAt && (
                       <div style={{ fontSize: 11, color: colors.warning, marginTop: 4 }}>
-                        Portal ETA: {new Date(s.completesAt).toLocaleTimeString()}
+                        Circle ETA: {new Date(s.completesAt).toLocaleTimeString()}
                       </div>
                     )}
                   </div>

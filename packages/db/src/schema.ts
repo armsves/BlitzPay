@@ -16,7 +16,7 @@ export const merchants = pgTable("merchants", {
   taxId: text("tax_id").notNull().default(""),
   walletAddress: text("wallet_address").notNull(),
   kybStatus: text("kyb_status").notNull().default("pending"),
-  portalCustomerId: text("portal_customer_id"),
+  circleAccountId: text("circle_account_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -31,7 +31,7 @@ export const bankDetails = pgTable("bank_details", {
   swift: text("swift"),
   country: text("country").notNull().default("US"),
   currency: text("currency").notNull().default("USD"),
-  portalPaymentMethodId: text("portal_payment_method_id"),
+  circleWireId: text("circle_wire_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -89,7 +89,7 @@ export const withdrawals = pgTable("withdrawals", {
   fiatAmount: text("fiat_amount").notNull(),
   fiatCurrency: text("fiat_currency").notNull().default("USD"),
   status: text("status").notNull().default("processing"), // processing | completed | failed
-  portalPayoutId: text("portal_payout_id"),
+  circleWithdrawalId: text("circle_withdrawal_id"),
   completesAt: timestamp("completes_at", { withTimezone: true }).notNull(),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

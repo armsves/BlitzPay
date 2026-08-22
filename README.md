@@ -37,13 +37,14 @@ pnpm dev:pos           # :3003
 pnpm dev:customer      # :3004
 ```
 
-## Portal (Mocked)
+## Circle Sandbox Settlement
 
-Real Portal access requires onboarding. Withdrawals simulate a **12 second** Portal payout delay:
-- Balance debited immediately
-- Status `processing` until delay elapses
-- Auto-completes to `completed` on next poll
-- Full audit trail in `balance_ledger` table
+Bank withdrawals use **[Circle Sandbox](https://app-sandbox.circle.com/)** — the "Withdraw to bank" flow:
+
+- Link bank account → creates a Circle wire destination
+- Withdraw USDC balance → simulates Circle wire payout (~12s delay)
+- Balance debited immediately, ledger updated, status polls to `completed`
+- Add `CIRCLE_API_KEY` from sandbox dashboard for live API calls
 
 ## Database Tables
 
@@ -51,7 +52,7 @@ Real Portal access requires onboarding. Withdrawals simulate a **12 second** Por
 |-------|---------|
 | `merchant_balances` | Current USDC balance per merchant |
 | `balance_ledger` | Every credit (payment) and debit (withdrawal) |
-| `withdrawals` | Portal-mocked bank payouts with status tracking |
+| `withdrawals` | Circle Sandbox bank withdrawals with status tracking |
 
 ## Testnet
 

@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       fiatAmount: w.fiatAmount,
       fiatCurrency: w.fiatCurrency,
       status: w.status,
-      portalPayoutId: w.portalPayoutId ?? undefined,
+      circleWithdrawalId: w.circleWithdrawalId ?? undefined,
       completesAt: w.completesAt.toISOString(),
       completedAt: w.completedAt?.toISOString(),
       createdAt: w.createdAt.toISOString(),

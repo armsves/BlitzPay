@@ -1,6 +1,6 @@
 import { createDb, merchants, bankDetails } from "@blitzpay/db";
 import { eq } from "drizzle-orm";
-import { createMockWithdrawal, getOrCreateBalance, PORTAL_MOCK_DELAY_MS } from "@/lib/balance";
+import { createCircleWithdrawal, getOrCreateBalance, CIRCLE_SANDBOX_DELAY_MS } from "@/lib/balance";
 import { error, ok } from "@/lib/api-utils";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -29,23 +29,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const fiatAmount = (parseFloat(amountUsdc) * 0.999).toFixed(2);
 
   try {
-    const withdrawal = await createMockWithdrawal({
+    const withdrawal = await createCircleWithdrawal({
       merchantId,
       amountUsdc,
       fiatAmount,
       fiatCurrency: bank.currency,
+      wireId: bank.circleWireId ?? undefined,
     });
 
     return ok({
       id: withdrawal.id,
-      portalPayoutId: withdrawal.portalPayoutId,
+      circleWithdrawalId: withdrawal.circleWithdrawalId,
       amountUsdc,
       fiatAmount,
       fiatCurrency: bank.currency,
       status: "processing",
       completesAt: withdrawal.completesAt.toISOString(),
-      delayMs: PORTAL_MOCK_DELAY_MS,
-      message: `Portal payout initiated (mocked). Funds will arrive in ~${PORTAL_MOCK_DELAY_MS / 1000}s.`,
+      delayMs: CIRCLE_SANDBOX_DELAY_MS,
+      mocked: withdrawal.mocked,
+      sandboxUrl: "https://app-sandbox.circle.com/",
+      message: withdrawal.message,
     });
   } catch (e: unknown) {
     return error(e instanceof Error ? e.message : "Withdrawal failed", 400);

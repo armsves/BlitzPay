@@ -1,9 +1,9 @@
 import { createDb, merchantBalances, balanceLedger, withdrawals } from "@blitzpay/db";
 import { eq, and, lte, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { createSandboxWithdrawal, CIRCLE_SANDBOX_DELAY_MS } from "./circle-sandbox";
 
-/** Mock Portal payout delay — simulates bank settlement processing time */
-export const PORTAL_MOCK_DELAY_MS = 12_000;
+export { CIRCLE_SANDBOX_DELAY_MS };
 
 export async function getOrCreateBalance(merchantId: string) {
   const db = createDb();
@@ -86,23 +86,29 @@ export async function debitBalance(
   return newBalance;
 }
 
-export async function createMockWithdrawal(params: {
+export async function createCircleWithdrawal(params: {
   merchantId: string;
   amountUsdc: string;
   fiatAmount: string;
   fiatCurrency: string;
+  wireId?: string;
 }) {
   const db = createDb();
   const id = nanoid();
-  const portalPayoutId = `portal_mock_${nanoid(10)}`;
-  const completesAt = new Date(Date.now() + PORTAL_MOCK_DELAY_MS);
+
+  const circle = await createSandboxWithdrawal({
+    amountUsdc: params.amountUsdc,
+    fiatAmount: params.fiatAmount,
+    fiatCurrency: params.fiatCurrency,
+    wireId: params.wireId,
+  });
 
   await debitBalance(
     params.merchantId,
     params.amountUsdc,
     "withdrawal",
     id,
-    `Portal payout to bank (${portalPayoutId})`
+    `Circle Sandbox withdraw to bank (${circle.circleWithdrawalId})`
   );
 
   await db.insert(withdrawals).values({
@@ -112,14 +118,14 @@ export async function createMockWithdrawal(params: {
     fiatAmount: params.fiatAmount,
     fiatCurrency: params.fiatCurrency,
     status: "processing",
-    portalPayoutId,
-    completesAt,
+    circleWithdrawalId: circle.circleWithdrawalId,
+    completesAt: circle.completesAt,
   });
 
-  return { id, portalPayoutId, completesAt, status: "processing" as const };
+  return { id, ...circle, status: "processing" as const };
 }
 
-/** Complete withdrawals whose mock Portal delay has elapsed */
+/** Complete withdrawals whose Circle sandbox wire delay has elapsed */
 export async function processPendingWithdrawals(merchantId?: string) {
   const db = createDb();
   const now = new Date();

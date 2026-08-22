@@ -12,6 +12,7 @@ export const USDC_TESTNET = {
 } as const;
 
 export const CIRCLE_FAUCET_URL = "https://faucet.circle.com/";
+export const CIRCLE_SANDBOX_APP_URL = "https://app-sandbox.circle.com/";
 
 export const APP_PORTS = {
   api: 3001,
@@ -32,7 +33,7 @@ export interface Merchant {
   taxId: string;
   walletAddress: string;
   kybStatus: KybStatus;
-  portalCustomerId?: string;
+  circleAccountId?: string;
   createdAt: string;
 }
 
@@ -47,7 +48,7 @@ export interface BankDetails {
   swift?: string;
   country: string;
   currency: string;
-  portalPaymentMethodId?: string;
+  circleWireId?: string;
   createdAt: string;
 }
 
@@ -111,7 +112,7 @@ export interface Settlement {
   fiatAmount: string;
   fiatCurrency: string;
   status: SettlementStatus;
-  portalPayoutId?: string;
+  circleWithdrawalId?: string;
   txHash?: string;
   completesAt?: string;
   completedAt?: string;

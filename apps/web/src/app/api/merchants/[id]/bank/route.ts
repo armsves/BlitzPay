@@ -1,6 +1,7 @@
 import { createDb, bankDetails } from "@blitzpay/db";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { linkSandboxWireAccount } from "@/lib/circle-sandbox";
 import { ok } from "@/lib/api-utils";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -8,7 +9,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const body = await req.json();
   const db = createDb();
   const bankId = nanoid();
-  const portalPaymentMethodId = `pm_mock_${nanoid(10)}`;
+
+  const wire = await linkSandboxWireAccount({
+    accountHolderName: body.accountHolderName,
+    bankName: body.bankName,
+    accountNumber: body.accountNumber,
+    routingNumber: body.routingNumber || "",
+    country: body.country || "US",
+  });
 
   await db.insert(bankDetails).values({
     id: bankId,
@@ -21,13 +29,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     swift: body.swift || null,
     country: body.country || "US",
     currency: body.currency || "USD",
-    portalPaymentMethodId,
+    circleWireId: wire.wireId,
   });
 
   return ok({
     id: bankId,
-    portalPaymentMethodId,
-    message: "Bank details saved (Portal mocked — payout rails simulated).",
+    circleWireId: wire.wireId,
+    message: wire.message,
+    sandboxUrl: "https://app-sandbox.circle.com/",
   });
 }
 
@@ -48,7 +57,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       swift: r.swift ?? undefined,
       country: r.country,
       currency: r.currency,
-      portalPaymentMethodId: r.portalPaymentMethodId ?? undefined,
+      circleWireId: r.circleWireId ?? undefined,
       createdAt: r.createdAt.toISOString(),
     }))
   );
