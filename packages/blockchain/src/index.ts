@@ -125,5 +125,6 @@ export function parsePaymentQrPayload(data: string): {
 }
 
 export { getServerMonadRpcUrl, getClientMonadRpcUrl } from "./rpc";
+export { usdcExtendedAbi, permitTypes, type PermitPrepareResult, type SponsoredPaymentResult } from "./usdc-permit";
 
 export { erc20Abi, USDC_TESTNET, MONAD_TESTNET };

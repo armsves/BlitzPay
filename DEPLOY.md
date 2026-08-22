@@ -32,6 +32,7 @@
 | Variable | Notes |
 |----------|--------|
 | `MONAD_RPC_URL` | Server-only dRPC endpoint — **never** prefix with `NEXT_PUBLIC_`. Browser traffic goes through `/api/rpc`. |
+| `GAS_SPONSOR_PRIVATE_KEY` | Relayer wallet private key — holds MON to sponsor customer gas (USDC permit + transferFrom) |
 | `CIRCLE_API_KEY` | Circle Sandbox API key |
 
 Supabase vars are injected by the `blitzpay-db` integration.

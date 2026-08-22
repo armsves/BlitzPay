@@ -10,7 +10,7 @@ import {
   connectWithPasskey,
   createNewPasskey,
   getAddress,
-  sendUsdcDirect,
+  payUsdcSponsored,
   disconnect,
 } from "@/lib/wallet";
 import type { Hex } from "viem";
@@ -86,43 +86,51 @@ export default function CustomerWallet() {
     setBalance("0.00");
   }
 
-  async function handleSend() {
-    if (!address || !sendTo || !sendAmount) return;
+  async function executePayment(to: string, amountUsdc: string, invoiceId?: string) {
     setLoading(true);
+    setMessage("Confirm with passkey…");
     try {
-      const result = await sendUsdcDirect(sendTo as Hex, sendAmount);
-      setMessage(`Sent! TX: ${result.txHash.slice(0, 10)}...`);
-      setSendTo("");
-      setSendAmount("");
-      await refreshBalance(address);
+      const result = await payUsdcSponsored(to as Hex, amountUsdc);
+      if (address) await refreshBalance(address);
 
-      // Confirm with API if it's an invoice payment
-      if (paymentData) {
+      if (invoiceId) {
         await fetch(`/api/payments/confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            invoiceId: paymentData.invoiceId,
+            invoiceId,
             txHash: result.txHash,
             blockNumber: result.blockNumber,
             status: result.status,
           }),
         });
         setPaymentData(null);
-        setMessage(`Payment confirmed instantly! TX: ${result.txHash.slice(0, 10)}...`);
+        setTab("wallet");
+        setMessage(`Paid $${amountUsdc} USDC — gas sponsored · TX ${result.txHash.slice(0, 10)}…`);
+      } else {
+        setSendTo("");
+        setSendAmount("");
+        setTab("wallet");
+        setMessage(`Sent $${amountUsdc} USDC · TX ${result.txHash.slice(0, 10)}…`);
       }
     } catch (e: unknown) {
-      setMessage(e instanceof Error ? e.message : "Send failed");
+      setMessage(e instanceof Error ? e.message : "Payment failed");
     }
     setLoading(false);
   }
 
+  async function handleSend() {
+    if (!address || !sendTo || !sendAmount) return;
+    await executePayment(sendTo, sendAmount);
+  }
+
   async function handlePayInvoice() {
     if (!paymentData || !address) return;
-    setSendTo(paymentData.merchantAddress);
-    setSendAmount(paymentData.amountUsdc);
-    setTab("send");
-    await handleSend();
+    await executePayment(
+      paymentData.merchantAddress,
+      paymentData.amountUsdc,
+      paymentData.invoiceId
+    );
   }
 
   function startScanner() {
@@ -270,7 +278,7 @@ export default function CustomerWallet() {
             </Button>
           </div>
           <p style={{ fontSize: 11, color: colors.textMuted, marginTop: 12 }}>
-            Payments settle instantly on Monad via eth_sendRawTransactionSync
+            Gas is sponsored — you only need USDC, not MON
           </p>
         </Card>
       )}
@@ -302,7 +310,7 @@ export default function CustomerWallet() {
             </p>
           </div>
           <Button onClick={handlePayInvoice} disabled={loading} size="lg" style={{ width: "100%", marginBottom: 12 }}>
-            {loading ? "Paying..." : "Pay Now — Instant Settlement"}
+            {loading ? "Confirm with passkey…" : "Pay now — passkey + sponsored gas"}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => { setPaymentData(null); setTab("wallet"); }} style={{ width: "100%" }}>
             Cancel
