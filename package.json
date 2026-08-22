@@ -1,0 +1,23 @@
+{
+  "name": "blitzpay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Instant settlement payment platform on Monad with Mera passkeys and Portal bank settlement",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "dev:api": "pnpm --filter @blitzpay/api dev",
+    "dev:merchant": "pnpm --filter @blitzpay/merchant dev",
+    "dev:pos": "pnpm --filter @blitzpay/pos dev",
+    "dev:customer": "pnpm --filter @blitzpay/customer dev"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=20"
+  }
+}
