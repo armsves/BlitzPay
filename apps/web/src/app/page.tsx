@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { colors } from "@blitzpay/ui";
+import { InstitutionalBanner } from "@/components/InstitutionalBanner";
 
 const features = [
   {
@@ -19,40 +20,9 @@ const features = [
 export default function HomePage() {
   return (
     <>
-      <header
-        style={{
-          background: `linear-gradient(135deg, ${colors.primary}22 0%, #0A0A0F 50%, ${colors.primary}11 100%)`,
-          borderBottom: `1px solid ${colors.border}`,
-          padding: "48px 20px 56px",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            display: "inline-block",
-            padding: "6px 14px",
-            borderRadius: 999,
-            background: `${colors.primary}25`,
-            border: `1px solid ${colors.primary}55`,
-            fontSize: 12,
-            fontWeight: 600,
-            color: colors.primary,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            marginBottom: 20,
-          }}
-        >
-          Built on Monad Testnet
-        </div>
-        <h1 style={{ fontSize: "clamp(36px, 6vw, 52px)", fontWeight: 800, marginBottom: 12, lineHeight: 1.1 }}>
-          <span style={{ color: colors.primary }}>Blitz</span>Pay
-        </h1>
-        <p style={{ color: colors.textMuted, fontSize: "clamp(16px, 2.5vw, 20px)", maxWidth: 560, margin: "0 auto", lineHeight: 1.5 }}>
-          Instant USDC payments for merchants and customers — scan, pay, settled.
-        </p>
-      </header>
+      <InstitutionalBanner />
 
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "40px 20px 64px" }}>
+      <main style={{ maxWidth: 720, margin: "0 auto", padding: "48px 20px 64px" }}>
         <section style={{ marginBottom: 48 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>What is BlitzPay?</h2>
           <p style={{ color: colors.textMuted, fontSize: 15, lineHeight: 1.7, marginBottom: 14 }}>
@@ -84,15 +54,15 @@ export default function HomePage() {
         </section>
 
         <section>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, textAlign: "center" }}>Get started</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, textAlign: "center" }}>Platform access</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 420, margin: "0 auto" }}>
             <Link
               href="/merchant"
               style={{
                 display: "block",
                 padding: "16px 24px",
-                background: colors.primary,
-                color: "#fff",
+                background: colors.surface,
+                border: `1px solid ${colors.border}`,
                 borderRadius: 12,
                 fontWeight: 600,
                 textAlign: "center",
