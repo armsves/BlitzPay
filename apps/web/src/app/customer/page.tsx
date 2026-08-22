@@ -94,7 +94,7 @@ export default function CustomerWallet() {
       if (address) await refreshBalance(address);
 
       if (invoiceId) {
-        await fetch(`/api/payments/confirm`, {
+        const confirmRes = await fetch(`/api/payments/confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -104,9 +104,13 @@ export default function CustomerWallet() {
             status: result.status,
           }),
         });
+        const confirmJson = await confirmRes.json();
+        if (!confirmJson.success) {
+          throw new Error(confirmJson.error || "Payment sent but invoice confirmation failed");
+        }
         setPaymentData(null);
         setTab("wallet");
-        setMessage(`Paid $${amountUsdc} USDC — gas sponsored · TX ${result.txHash.slice(0, 10)}…`);
+        setMessage(`Paid $${amountUsdc} USDC — invoice confirmed · TX ${result.txHash.slice(0, 10)}…`);
       } else {
         setSendTo("");
         setSendAmount("");

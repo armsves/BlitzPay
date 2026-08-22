@@ -56,6 +56,33 @@ export default function POSApp() {
     }
   }, [merchant, loadProducts, loadInvoices]);
 
+  // Poll invoice status while QR is displayed
+  useEffect(() => {
+    if (!activeInvoice || activeInvoice.status === "paid") return;
+
+    let cancelled = false;
+
+    async function poll() {
+      const res = await fetch(`/api/invoices/${activeInvoice!.id}`);
+      const data = await res.json();
+      if (cancelled || !data.success) return;
+
+      const updated = data.data as Invoice;
+      if (updated.status === "paid") {
+        setActiveInvoice(updated);
+        setMessage(`Payment received — ${updated.invoiceNumber} paid`);
+        loadInvoices();
+      }
+    }
+
+    poll();
+    const interval = setInterval(poll, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [activeInvoice?.id, activeInvoice?.status, loadInvoices]);
+
   function addToCart(product: Product) {
     setCart((prev) => {
       const existing = prev.find((i) => i.productId === product.id);
@@ -267,20 +294,49 @@ export default function POSApp() {
           <p style={{ fontSize: 32, fontWeight: 700, color: colors.primary, marginBottom: 16 }}>
             ${activeInvoice.totalUsdc} USDC
           </p>
-          <div style={{ display: "inline-block", background: "#fff", padding: 16, borderRadius: 12, marginBottom: 16 }}>
-            <QRCodeSVG value={activeInvoice.paymentQrData} size={200} />
-          </div>
-          <p style={{ color: colors.textMuted, fontSize: 13, marginBottom: 12 }}>
-            Customer scans this QR to pay instantly
-          </p>
-          <Badge variant={activeInvoice.status === "paid" ? "success" : "warning"}>
-            {activeInvoice.status.toUpperCase()}
-          </Badge>
-          <div style={{ marginTop: 16 }}>
-            <Button variant="secondary" size="sm" onClick={() => setActiveInvoice(null)}>
-              Close
-            </Button>
-          </div>
+
+          {activeInvoice.status === "paid" ? (
+            <>
+              <div
+                style={{
+                  background: "#00C85320",
+                  border: `1px solid ${colors.success}`,
+                  borderRadius: 12,
+                  padding: 24,
+                  marginBottom: 16,
+                }}
+              >
+                <p style={{ fontSize: 28, fontWeight: 700, color: colors.success, marginBottom: 8 }}>✓ PAID</p>
+                <p style={{ color: colors.textMuted, fontSize: 13 }}>Payment received — instant settlement</p>
+                {activeInvoice.txHash && (
+                  <p style={{ fontSize: 11, color: colors.textMuted, marginTop: 12, fontFamily: "monospace", wordBreak: "break-all" }}>
+                    TX: {activeInvoice.txHash}
+                  </p>
+                )}
+              </div>
+              <Button onClick={() => setActiveInvoice(null)} size="lg">
+                New sale
+              </Button>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "inline-block", background: "#fff", padding: 16, borderRadius: 12, marginBottom: 16 }}>
+                <QRCodeSVG value={activeInvoice.paymentQrData} size={200} />
+              </div>
+              <p style={{ color: colors.textMuted, fontSize: 13, marginBottom: 8 }}>
+                Customer scans this QR to pay
+              </p>
+              <p style={{ color: colors.primary, fontSize: 12, marginBottom: 12 }}>
+                Waiting for payment…
+              </p>
+              <Badge variant="warning">{activeInvoice.status.toUpperCase()}</Badge>
+              <div style={{ marginTop: 16 }}>
+                <Button variant="secondary" size="sm" onClick={() => setActiveInvoice(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </>
+          )}
         </Card>
       )}
 
