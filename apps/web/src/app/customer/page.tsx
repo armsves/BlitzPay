@@ -14,6 +14,7 @@ import {
   disconnect,
 } from "@/lib/wallet";
 import type { Hex } from "viem";
+import { BlitzPayLogo } from "@/components/BlitzPayLogo";
 
 type Tab = "wallet" | "pay" | "scan" | "send";
 
@@ -172,13 +173,8 @@ export default function CustomerWallet() {
   if (!address) {
     return (
       <div style={{ maxWidth: 420, margin: "60px auto", padding: 20 }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
-            <span style={{ color: colors.primary }}>Blitz</span>Pay
-          </h1>
-          <p style={{ color: colors.textMuted, fontSize: 15 }}>
-            Instant USDC payments on Monad
-          </p>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+          <BlitzPayLogo size="lg" href="/" subtitle="Instant USDC payments on Monad" />
         </div>
 
         <Card>
@@ -224,9 +220,7 @@ export default function CustomerWallet() {
     <div style={{ maxWidth: 420, margin: "0 auto", padding: "24px 16px", paddingBottom: 80 }}>
       <header style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700 }}>
-            <span style={{ color: colors.primary }}>Blitz</span>Pay
-          </h1>
+          <BlitzPayLogo size="sm" href="/" subtitle="Customer Wallet" />
           <Button variant="ghost" size="sm" onClick={handleDisconnect}>Logout</Button>
         </div>
       </header>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button, Card, Input, Badge, colors } from "@blitzpay/ui";
 import type { Merchant, BankDetails, Settlement, MerchantBalanceInfo, BalanceLedgerEntry } from "@blitzpay/shared";
 import { CIRCLE_SANDBOX_APP_URL } from "@blitzpay/shared";
+import { BlitzPayLogo } from "@/components/BlitzPayLogo";
 
 type View = "login" | "register" | "dashboard" | "kyb" | "bank" | "settle";
 
@@ -182,10 +183,7 @@ export default function MerchantPortal() {
     <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 20px" }}>
       <header style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700 }}>
-            <span style={{ color: colors.primary }}>Blitz</span>Pay
-          </h1>
-          <p style={{ color: colors.textMuted, fontSize: 14 }}>Merchant Portal</p>
+          <BlitzPayLogo size="md" href="/" subtitle="Merchant Portal" />
         </div>
         {merchant && <Button variant="ghost" size="sm" onClick={logout}>Logout</Button>}
       </header>

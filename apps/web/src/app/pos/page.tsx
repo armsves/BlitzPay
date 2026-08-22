@@ -5,6 +5,7 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { Button, Card, Input, Badge, colors } from "@blitzpay/ui";
 import type { Product, Invoice, InvoiceItem, Merchant } from "@blitzpay/shared";
+import { BlitzPayLogo } from "@/components/BlitzPayLogo";
 
 export default function POSApp() {
   const [merchant, setMerchant] = useState<Merchant | null>(null);
@@ -185,9 +186,9 @@ export default function POSApp() {
   if (!merchant) {
     return (
       <div style={{ maxWidth: 480, margin: "80px auto", padding: 20, textAlign: "center" }}>
-        <h1 style={{ fontSize: 28, marginBottom: 12 }}>
-          <span style={{ color: colors.primary }}>Blitz</span>Pay POS
-        </h1>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <BlitzPayLogo size="lg" href="/" subtitle="Point of Sale" />
+        </div>
         <p style={{ color: colors.textMuted, marginBottom: 24 }}>
           Log in as a merchant first — POS uses the same session as the merchant portal.
         </p>
@@ -256,10 +257,7 @@ export default function POSApp() {
         }}
       >
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700 }}>
-            <span style={{ color: colors.primary }}>Blitz</span>Pay POS
-          </h1>
-          <p style={{ color: colors.textMuted, fontSize: 13 }}>{merchant.businessName}</p>
+          <BlitzPayLogo size="md" href="/" subtitle={merchant.businessName} />
         </div>
         <Button variant="secondary" size="sm" onClick={() => setShowInvoices(true)}>
           Invoice history

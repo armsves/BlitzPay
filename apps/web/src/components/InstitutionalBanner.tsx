@@ -1,117 +1,128 @@
 import Link from "next/link";
+import { BlitzPayLogo } from "./BlitzPayLogo";
 
-const GOLD_DIM = "#8A734F";
+const stats = [
+  { value: "<500ms", label: "Settlement" },
+  { value: "USDC", label: "Stablecoin" },
+  { value: "QR", label: "Checkout" },
+  { value: "Monad", label: "Network" },
+];
 
-function QrMark() {
+const tags = ["Passkey wallets", "Gas sponsored", "Bank withdrawals"];
+
+function HeroQrPreview() {
   const cells = [
-    1, 1, 1, 1, 1, 0, 1, 0, 1,
-    1, 0, 0, 0, 1, 0, 0, 1, 0,
-    1, 0, 1, 0, 1, 0, 1, 0, 1,
-    1, 0, 0, 0, 1, 0, 0, 0, 1,
-    1, 1, 1, 1, 1, 0, 1, 1, 0,
-    0, 0, 0, 0, 0, 0, 0, 1, 0,
-    1, 0, 1, 1, 0, 1, 0, 0, 1,
-    0, 1, 0, 0, 1, 0, 1, 0, 0,
-    1, 0, 1, 0, 1, 0, 0, 1, 1,
+    1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1,
+    1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0,
+    1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+    1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+    1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+    1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0,
+    0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1,
+    1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1,
+    0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0,
+    1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1,
   ];
 
   return (
-    <div className="inst-banner-qr" aria-hidden>
+    <div className="hero-qr" aria-hidden>
       {cells.map((on, i) => (
-        <div key={i} className={on ? "inst-banner-qr-cell on" : "inst-banner-qr-cell"} />
+        <div key={i} className={on ? "hero-qr-cell on" : "hero-qr-cell"} />
       ))}
     </div>
   );
 }
 
-const metrics = [
-  { label: "Settlement", value: "<500ms" },
-  { label: "Asset", value: "USDC" },
-  { label: "Rail", value: "QR-Initiated" },
-  { label: "Network", value: "Monad" },
-];
-
 export function InstitutionalBanner() {
   return (
-    <section className="inst-banner">
-      <div className="inst-banner-topbar">
-        <span className="inst-banner-topbar-label">BlitzPay Settlement Systems</span>
-        <span className="inst-banner-topbar-sep" />
-        <span className="inst-banner-topbar-label">QR Payment Infrastructure</span>
-        <span className="inst-banner-topbar-sep" />
-        <span className="inst-banner-topbar-label">Institutional Demo Environment</span>
+    <section className="hero">
+      <div className="hero-bg">
+        <div className="hero-orb hero-orb-a" />
+        <div className="hero-orb hero-orb-b" />
+        <div className="hero-grid" aria-hidden />
       </div>
 
-      <div className="inst-banner-body">
-        <div className="inst-banner-content">
-          <p className="inst-banner-eyebrow">Enterprise QR Settlement Platform</p>
-          <h1 className="inst-banner-title">
-            Institutional-grade
+      <header className="hero-header">
+        <BlitzPayLogo size="md" />
+        <nav className="hero-nav">
+          <Link href="/merchant">Merchant</Link>
+          <Link href="/pos">POS</Link>
+          <Link href="/customer">Wallet</Link>
+        </nav>
+      </header>
+
+      <div className="hero-body">
+        <div className="hero-content">
+          <span className="hero-pill">Instant settlement on Monad</span>
+          <h1 className="hero-title">
+            Pay with a scan.
             <br />
-            <span className="inst-banner-title-accent">QR payment rails</span>
+            <span className="hero-title-accent">Settle in seconds.</span>
           </h1>
-          <p className="inst-banner-lede">
-            BlitzPay connects merchant point-of-sale, customer passkey wallets, and
-            real-time USDC settlement into a single regulated-style payment corridor.
-            Scan. Authorize. Settle. Reconcile.
+          <p className="hero-lede">
+            BlitzPay connects merchant POS, customer passkey wallets, and real-time USDC
+            settlement — one platform, one domain. Scan the QR, authorize with Face ID, done.
           </p>
 
-          <div className="inst-banner-badges">
-            <span className="inst-banner-badge">Real-time ledger</span>
-            <span className="inst-banner-badge">Passkey authentication</span>
-            <span className="inst-banner-badge">Bank withdrawal rail</span>
+          <div className="hero-tags">
+            {tags.map((tag) => (
+              <span key={tag} className="hero-tag">
+                {tag}
+              </span>
+            ))}
           </div>
 
-          <div className="inst-banner-actions">
-            <Link href="/merchant" className="inst-banner-cta primary">
-              Merchant onboarding
+          <div className="hero-actions">
+            <Link href="/merchant" className="hero-cta primary">
+              Open merchant portal
             </Link>
-            <Link href="/customer" className="inst-banner-cta secondary">
+            <Link href="/customer" className="hero-cta secondary">
               Customer wallet
             </Link>
           </div>
         </div>
 
-        <div className="inst-banner-visual">
-          <div className="inst-banner-panel">
-            <div className="inst-banner-panel-header">
-              <span className="inst-banner-panel-dot" />
-              <span>Payment initiation — QR</span>
+        <div className="hero-visual">
+          <div className="hero-card">
+            <div className="hero-card-top">
+              <span className="hero-card-dot" />
+              <span>Live invoice</span>
+              <span className="hero-card-badge">Ready</span>
             </div>
-            <div className="inst-banner-panel-body">
-              <QrMark />
-              <div className="inst-banner-panel-meta">
-                <div className="inst-banner-panel-row">
+            <div className="hero-card-main">
+              <HeroQrPreview />
+              <div className="hero-card-details">
+                <div className="hero-card-row">
+                  <span>Amount</span>
+                  <strong>$12.50 USDC</strong>
+                </div>
+                <div className="hero-card-row">
+                  <span>Method</span>
+                  <strong>Passkey</strong>
+                </div>
+                <div className="hero-card-row">
                   <span>Status</span>
-                  <strong style={{ color: "#4ADE80" }}>Ready to settle</strong>
-                </div>
-                <div className="inst-banner-panel-row">
-                  <span>Currency</span>
-                  <strong>USDC</strong>
-                </div>
-                <div className="inst-banner-panel-row">
-                  <span>Confirmation</span>
-                  <strong>Synchronous</strong>
+                  <strong className="hero-card-status">Awaiting scan</strong>
                 </div>
               </div>
+            </div>
+            <div className="hero-card-footer">
+              <span>Gas sponsored</span>
+              <span className="hero-card-footer-dot" />
+              <span>Synchronous finality</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="inst-banner-metrics">
-        {metrics.map((m) => (
-          <div key={m.label} className="inst-banner-metric">
-            <span className="inst-banner-metric-value">{m.value}</span>
-            <span className="inst-banner-metric-label">{m.label}</span>
+      <div className="hero-stats">
+        {stats.map((s) => (
+          <div key={s.label} className="hero-stat">
+            <span className="hero-stat-value">{s.value}</span>
+            <span className="hero-stat-label">{s.label}</span>
           </div>
         ))}
-      </div>
-
-      <div className="inst-banner-footer">
-        <span style={{ color: GOLD_DIM }}>BlitzPay</span>
-        <span style={{ color: "#334155" }}>|</span>
-        <span>QR-initiated stablecoin settlement for merchants and financial operators</span>
       </div>
     </section>
   );
