@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { ok } from "@/lib/api-utils";
 
-export async function POST(req: Request, { params }: { params: Promise<{ merchantId: string }> }) {
-  const { merchantId } = await params;
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: merchantId } = await params;
   const body = await req.json();
   const id = nanoid();
   const db = createDb();
@@ -24,8 +24,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ merchan
   return ok({ id, ...body });
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ merchantId: string }> }) {
-  const { merchantId } = await params;
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: merchantId } = await params;
   const db = createDb();
   const rows = await db.select().from(products).where(eq(products.merchantId, merchantId));
 

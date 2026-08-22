@@ -5,8 +5,8 @@ import { createPaymentQrPayload } from "@blitzpay/blockchain";
 import type { InvoiceItem } from "@blitzpay/shared";
 import { error, ok } from "@/lib/api-utils";
 
-export async function POST(req: Request, { params }: { params: Promise<{ merchantId: string }> }) {
-  const { merchantId } = await params;
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: merchantId } = await params;
   const body = await req.json();
   const db = createDb();
 
@@ -53,8 +53,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ merchan
   });
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ merchantId: string }> }) {
-  const { merchantId } = await params;
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: merchantId } = await params;
   const db = createDb();
   const rows = await db.select().from(invoices).where(eq(invoices.merchantId, merchantId));
 

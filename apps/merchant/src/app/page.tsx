@@ -6,6 +6,8 @@ import type { Merchant, BankDetails, Settlement, MerchantBalanceInfo, BalanceLed
 import { CIRCLE_SANDBOX_APP_URL } from "@blitzpay/shared";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const POS_URL = process.env.NEXT_PUBLIC_POS_URL || "http://localhost:3003";
+const CUSTOMER_URL = process.env.NEXT_PUBLIC_CUSTOMER_URL || "http://localhost:3004";
 
 type View = "login" | "register" | "dashboard" | "kyb" | "bank" | "settle";
 
@@ -281,8 +283,8 @@ export default function MerchantPortal() {
           <Card>
             <h3 style={{ marginBottom: 12 }}>Quick Links</h3>
             <div style={{ display: "flex", gap: 12 }}>
-              <a href="http://localhost:3003" target="_blank"><Button variant="secondary" size="sm">Open POS →</Button></a>
-              <a href="http://localhost:3004" target="_blank"><Button variant="secondary" size="sm">Customer App →</Button></a>
+              <a href={POS_URL} target="_blank"><Button variant="secondary" size="sm">Open POS →</Button></a>
+              <a href={CUSTOMER_URL} target="_blank"><Button variant="secondary" size="sm">Customer App →</Button></a>
             </div>
           </Card>
         </>

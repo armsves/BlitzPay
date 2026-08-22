@@ -1,44 +1,76 @@
-# Deploy BlitzPay on Vercel
+# Deploy BlitzPay
 
-## 1. Vercel project settings
+## Live URLs
 
-Project: **blitzpay** → Settings → General
+| App | URL |
+|-----|-----|
+| **API** | https://blitzpay-eight.vercel.app |
+| **Merchant** | https://blitzpay-merchant.vercel.app |
+| **POS** | https://blitzpay-pos.vercel.app |
+| **Customer** | https://blitzpay-customer.vercel.app |
 
-| Setting | Value |
-|---------|--------|
-| **Root Directory** | `apps/web` |
-| **Install Command** | `cd ../.. && pnpm install` |
-| **Build Command** | `cd ../.. && pnpm --filter @blitzpay/web build` |
-| **Framework** | Next.js |
+## Stack
 
-## 2. Environment variables (Production)
+- **API:** Next.js serverless on Vercel (`apps/web`)
+- **Frontends:** Merchant, POS, Customer — separate Vercel projects
+- **Database:** Supabase Postgres (via `vercel integration add supabase`)
+- **Settlement:** Circle Sandbox
 
-| Variable | Required | Notes |
-|----------|----------|--------|
-| `DATABASE_URL` | Yes | Neon Postgres connection string |
-| `CIRCLE_API_KEY` | Yes | From [app-sandbox.circle.com](https://app-sandbox.circle.com/) → API Keys |
-| `CIRCLE_ACCOUNT_ID` | Optional | For live sandbox wire payouts |
+## Vercel projects
 
-**Never commit API keys to `.env.example`** — use Vercel env or `.env.local` only.
+| Project | Root Directory | Env vars |
+|---------|----------------|----------|
+| `blitzpay` | `apps/web` | Supabase integration vars, `CIRCLE_API_KEY` |
+| `blitzpay-merchant` | `apps/merchant` | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_POS_URL`, `NEXT_PUBLIC_CUSTOMER_URL` |
+| `blitzpay-pos` | `apps/pos` | `NEXT_PUBLIC_API_URL` |
+| `blitzpay-customer` | `apps/customer` | `NEXT_PUBLIC_API_URL` |
 
-## 3. Database schema
+Install/build commands (in each app's `vercel.json`):
 
-After first deploy:
-
-```bash
-DATABASE_URL=your_neon_url pnpm db:push
+```
+Install: cd ../.. && pnpm install
+Build:   cd ../.. && pnpm --filter @blitzpay/<app> build
 ```
 
-## 4. Frontends (merchant, pos, customer)
-
-Deploy each app separately or run locally with:
+## Supabase setup
 
 ```bash
-NEXT_PUBLIC_API_URL=https://your-blitzpay-api.vercel.app pnpm dev:merchant
+vercel integration add supabase -n blitzpay-db
 ```
 
-## 5. Test Circle Sandbox key
+Push schema:
 
 ```bash
-CIRCLE_API_KEY=your_key pnpm exec tsx scripts/test-circle.ts
+source .env.local
+export DATABASE_URL="$POSTGRES_URL_NON_POOLING"
+cd packages/db && pnpm db:push
+```
+
+## Deploy
+
+```bash
+# API (from repo root, linked to blitzpay)
+vercel deploy --prod --yes
+
+# Frontends
+cd apps/merchant && vercel deploy --prod --yes
+cd apps/pos && vercel deploy --prod --yes
+cd apps/customer && vercel deploy --prod --yes
+```
+
+## Local dev
+
+```bash
+pnpm install
+pnpm db:push
+pnpm dev:web           # :3001
+pnpm dev:merchant      # :3002
+pnpm dev:pos           # :3003
+pnpm dev:customer      # :3004
+```
+
+Point frontends at production API:
+
+```bash
+NEXT_PUBLIC_API_URL=https://blitzpay-eight.vercel.app pnpm dev:merchant
 ```
