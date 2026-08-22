@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BlitzPay API",
-  description: "Serverless API for BlitzPay on Vercel",
+  title: "BlitzPay",
+  description: "Instant USDC payments on Monad",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -12,9 +12,13 @@
     "@blitzpay/blockchain": "workspace:*",
     "@blitzpay/db": "workspace:*",
     "@blitzpay/shared": "workspace:*",
+    "@blitzpay/ui": "workspace:*",
+    "@category-labs/mera": "^0.1.0",
+    "@zxing/browser": "^0.1.5",
     "drizzle-orm": "^0.38.3",
     "nanoid": "^5.0.9",
     "next": "^15.1.3",
+    "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "viem": "^2.21.54"

@@ -2,7 +2,7 @@ const path = require("path");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@blitzpay/db", "@blitzpay/blockchain", "@blitzpay/shared"],
+  transpilePackages: ["@blitzpay/db", "@blitzpay/blockchain", "@blitzpay/shared", "@blitzpay/ui"],
   serverExternalPackages: ["postgres"],
   outputFileTracingRoot: path.join(__dirname, "../.."),
   async headers() {

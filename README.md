@@ -1,47 +1,44 @@
 # BlitzPay
 
-Instant settlement payment platform on **Monad** — serverless API on Vercel with Supabase Postgres.
+Instant settlement payment platform on **Monad** — one Next.js app on Vercel with Supabase Postgres.
 
 **Repository:** https://github.com/armsves/BlitzPay
 
-## Live apps
+## Live app
 
-| App | URL |
-|-----|-----|
-| **Merchant portal** | https://blitzpay-merchant.vercel.app |
-| **POS** | https://blitzpay-pos.vercel.app |
-| **Customer wallet** | https://blitzpay-customer.vercel.app |
-| **API** | https://blitzpay-eight.vercel.app |
+**https://blitzpay-eight.vercel.app**
+
+| Route | What |
+|-------|------|
+| `/merchant` | Merchant register / login, KYB, bank, withdrawals |
+| `/pos` | Products, invoices, QR codes |
+| `/customer` | Passkey wallet, scan & pay |
+| `/api/*` | Serverless API |
 
 ## Architecture
 
-- **`apps/web`** — Next.js serverless API (Vercel deploy target)
-- **`apps/merchant`** — KYB, bank details, balance & withdrawals
-- **`apps/pos`** — Products, invoices, QR codes
-- **`apps/customer`** — Mera passkeys, QR pay, Circle faucet
+Everything lives in **`apps/web`** — API route handlers plus `/merchant`, `/pos`, `/customer` pages.
 
-See [DEPLOY.md](./DEPLOY.md) for Vercel project setup and env vars.
+Legacy folders `apps/merchant`, `apps/pos`, `apps/customer` are kept for reference; use `apps/web` for deploy.
 
-## Local Dev
+See [DEPLOY.md](./DEPLOY.md) for Vercel + Supabase setup.
+
+## Local dev
 
 ```bash
-cp .env.example .env   # Supabase / API URLs
+cp .env.example .env
 pnpm install
-pnpm db:push           # create tables (needs DATABASE_URL)
-pnpm dev:web           # API on :3001
-pnpm dev:merchant      # :3002
-pnpm dev:pos           # :3003
-pnpm dev:customer      # :3004
+pnpm db:push
+pnpm dev:web    # :3001 — /merchant, /pos, /customer, /api
 ```
 
 ## Circle Sandbox Settlement
 
-Bank withdrawals use **[Circle Sandbox](https://app-sandbox.circle.com/)** — the "Withdraw to bank" flow:
+Bank withdrawals use **[Circle Sandbox](https://app-sandbox.circle.com/)**:
 
-- Link bank account → creates a Circle wire destination
-- Withdraw USDC balance → simulates Circle wire payout (~12s delay)
-- Balance debited immediately, ledger updated, status polls to `completed`
-- Add `CIRCLE_API_KEY` from sandbox dashboard for live API calls
+- Link bank account → Circle wire destination
+- Withdraw USDC → ~12s simulated wire
+- Add `CIRCLE_API_KEY` on Vercel for live sandbox API calls
 
 ## Database Tables
 

@@ -8,9 +8,6 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "dev:web": "pnpm --filter @blitzpay/web dev",
-    "dev:merchant": "pnpm --filter @blitzpay/merchant dev",
-    "dev:pos": "pnpm --filter @blitzpay/pos dev",
-    "dev:customer": "pnpm --filter @blitzpay/customer dev",
     "db:push": "pnpm --filter @blitzpay/web db:push"
   },
   "devDependencies": {
