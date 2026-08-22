@@ -12,7 +12,8 @@ out/
 # Environment
 .env
 .env.local
-.env.*.local
+.env.vercel.*
+.env*.local
 
 # Database
 *.db
@@ -41,3 +42,4 @@ pnpm-debug.log*
 coverage/
 
 .vercel
+.env*.local
