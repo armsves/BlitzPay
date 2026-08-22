@@ -12,11 +12,11 @@ import {
   USDC_TESTNET,
   erc20Abi,
   getClientMonadRpcUrl,
-  permitTypes,
   MONAD_TESTNET,
 } from "@blitzpay/blockchain";
 
 const CREDENTIAL_KEY = "blitzpay.credential";
+const MIN_GAS_WEI = BigInt(5e15); // 0.005 MON
 
 function deriveEvmKey(prfOutput: Uint8Array): Uint8Array {
   return prfOutput.slice(0, 32);
@@ -63,9 +63,8 @@ export async function createNewPasskey(): Promise<string> {
   return toViemAccount(session).address;
 }
 
-/** Re-prompt passkey if session expired — use before any payment signature. */
-export async function ensureWalletSession(): Promise<string> {
-  if (session) return toViemAccount(session).address;
+/** Always re-prompt passkey before signing a payment. */
+export async function requirePasskeyForPayment(): Promise<string> {
   return connectWithPasskey();
 }
 
@@ -74,22 +73,36 @@ export function getAddress(): string | null {
   return toViemAccount(session).address;
 }
 
-async function waitForReceiptSync(txHash: Hex): Promise<{ blockNumber: string; status: string }> {
+async function rpcCall(method: string, params: unknown[]) {
   const response = await fetch(getClientMonadRpcUrl(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method: "eth_getTransactionReceipt",
-      params: [txHash],
-      id: 1,
-    }),
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
   });
   const json = await response.json();
-  if (json.result) {
+  if (json.error) throw new Error(json.error.message || "RPC error");
+  return json.result;
+}
+
+async function getMonBalance(address: Address): Promise<bigint> {
+  const result = await rpcCall("eth_getBalance", [address, "latest"]);
+  return BigInt(result);
+}
+
+async function waitForMonBalance(address: Address): Promise<void> {
+  for (let i = 0; i < 50; i++) {
+    if ((await getMonBalance(address)) >= MIN_GAS_WEI) return;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  throw new Error("Gas sponsorship timed out — sponsor wallet may be empty");
+}
+
+async function waitForReceiptSync(txHash: Hex): Promise<{ blockNumber: string; status: string }> {
+  const result = await rpcCall("eth_getTransactionReceipt", [txHash]);
+  if (result) {
     return {
-      blockNumber: json.result.blockNumber || "0",
-      status: json.result.status || "0x1",
+      blockNumber: result.blockNumber || "0",
+      status: result.status || "0x1",
     };
   }
   await new Promise((r) => setTimeout(r, 200));
@@ -97,7 +110,7 @@ async function waitForReceiptSync(txHash: Hex): Promise<{ blockNumber: string; s
 }
 
 async function sendUsdcDirect(to: Hex, amountUsdc: string) {
-  if (!session) throw new Error("Not connected");
+  if (!session) throw new Error("Wallet session expired");
 
   const account = toViemAccount(session);
   const client = createWalletClient({
@@ -120,75 +133,27 @@ async function sendUsdcDirect(to: Hex, amountUsdc: string) {
   return { txHash: hash, blockNumber: receipt.blockNumber, status: receipt.status };
 }
 
-/** Gas-sponsored USDC payment — passkey signs permit, relayer pays MON gas. */
+/** Sponsor gas (MON drip) then customer signs USDC transfer with passkey. */
 export async function payUsdcSponsored(
   to: Hex,
   amountUsdc: string
 ): Promise<{ txHash: string; blockNumber: string; status: string }> {
-  const owner = (await ensureWalletSession()) as Address;
-  const account = toViemAccount(session!);
+  const owner = (await requirePasskeyForPayment()) as Address;
 
-  const prepRes = await fetch("/api/payments/sponsor/prepare", {
+  const fundRes = await fetch("/api/payments/sponsor", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ owner, to, amountUsdc }),
+    body: JSON.stringify({ owner }),
   });
-  const prepJson = await prepRes.json();
-  if (!prepJson.success) {
-    throw new Error(prepJson.error || "Could not prepare sponsored payment");
+  const fundJson = await fundRes.json();
+  if (!fundJson.success) {
+    throw new Error(fundJson.error || "Gas sponsorship failed — fund the sponsor wallet with MON");
   }
 
-  const prep = prepJson.data;
-
-  try {
-    const signature = await account.signTypedData({
-      domain: {
-        name: prep.tokenName,
-        version: prep.tokenVersion,
-        chainId: prep.chainId,
-        verifyingContract: prep.tokenAddress as Address,
-      },
-      types: permitTypes,
-      primaryType: "Permit",
-      message: {
-        owner: prep.owner as Address,
-        spender: prep.sponsorAddress as Address,
-        value: BigInt(prep.amount),
-        nonce: BigInt(prep.nonce),
-        deadline: BigInt(prep.deadline),
-      },
-    });
-
-    const payRes = await fetch("/api/payments/sponsor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        owner: prep.owner,
-        to: prep.to,
-        amountUsdc: prep.amountUsdc,
-        deadline: prep.deadline,
-        signature,
-      }),
-    });
-    const payJson = await payRes.json();
-    if (payJson.success) {
-      return payJson.data;
-    }
-  } catch {
-    // fall through to gas drip + direct transfer
+  if (!fundJson.data.alreadyFunded) {
+    await waitForMonBalance(owner);
   }
 
-  await fetch("/api/payments/sponsor", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "drip", owner }),
-  });
-
-  return sendUsdcDirect(to, amountUsdc);
-}
-
-export async function sendUsdcDirectLegacy(to: Hex, amountUsdc: string) {
-  await ensureWalletSession();
   return sendUsdcDirect(to, amountUsdc);
 }
 

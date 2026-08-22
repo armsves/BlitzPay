@@ -1,35 +1,30 @@
 import type { Address, Hex } from "viem";
 import { error, ok } from "@/lib/api-utils";
-import { dripGasTo, executeSponsoredPayment } from "@/lib/gas-sponsor";
+import { fundCustomerGas, getSponsorBalance, getSponsorInfo } from "@/lib/gas-sponsor";
+
+export async function GET() {
+  try {
+    const { address } = getSponsorInfo();
+    const balance = await getSponsorBalance();
+    return ok({
+      sponsorAddress: address,
+      balanceMon: (Number(balance) / 1e18).toFixed(4),
+      ready: balance > BigInt(1e17),
+    });
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Sponsor not configured", 503);
+  }
+}
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const owner = body.owner as Address;
+    if (!owner) return error("Missing owner address");
 
-    if (body.action === "drip") {
-      await dripGasTo(body.owner as Address);
-      return ok({ gasToppedUp: true });
-    }
-
-    const { owner, to, amountUsdc, deadline, signature } = body;
-    if (!owner || !to || !amountUsdc || !deadline || !signature) {
-      return error("Missing payment fields");
-    }
-
-    try {
-      const result = await executeSponsoredPayment({
-        owner: owner as Address,
-        to: to as Address,
-        amountUsdc,
-        deadline,
-        signature: signature as Hex,
-      });
-      return ok(result);
-    } catch {
-      await dripGasTo(owner as Address);
-      return error("Permit relay failed — gas topped up, retry payment", 502);
-    }
+    const result = await fundCustomerGas(owner);
+    return ok(result);
   } catch (e: unknown) {
-    return error(e instanceof Error ? e.message : "Sponsor failed", 500);
+    return error(e instanceof Error ? e.message : "Gas fund failed", 500);
   }
 }
